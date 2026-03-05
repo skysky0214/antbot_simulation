@@ -347,14 +347,9 @@ ros2 launch antbot_teleop teleop_joy.launch.py
 
 **Joystick button bindings** (DualSense):
 
-| Input | Action |
-|:------|--------|
-| Left Stick Y | Forward / Backward |
-| Left Stick X | Curve turning (while moving) |
-| L2 / R2 | In-place rotate CCW / CW |
-| Triangle / Cross | Speed level UP / DOWN |
-| Square / Circle | Cargo lock / unlock |
-| L1 / R1 | Headlight / Wiper toggle |
+<div align="center">
+  <img src="docs/images/joystick_dualsense(en).png" alt="DualSense Joystick Button Map" width="600" />
+</div>
 
 ### Manual Velocity Commands
 

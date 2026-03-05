@@ -326,7 +326,11 @@ ros2 launch antbot_description description.launch.py
 키보드로 직접 조종:
 
 ```bash
+# 키보드 텔레오퍼레이션 (터미널에서 실행)
 ros2 run antbot_teleop teleop_keyboard
+
+# 조이스틱 텔레오퍼레이션 (DualSense, USB)
+ros2 launch antbot_teleop teleop_joy.launch.py
 ```
 
 **키 바인딩:**
@@ -339,6 +343,12 @@ ros2 run antbot_teleop teleop_keyboard
 | `S`       | 정지                |
 | `1` ~ `9` | 속도 레벨           |
 | `ESC`     | 종료                |
+
+**조이스틱 버튼 바인딩** (DualSense):
+
+<div align="center">
+  <img src="docs/images/joystick_dualsense(kr).png" alt="DualSense 조이스틱 버튼 맵" width="600" />
+</div>
 
 ### 수동 속도 명령
 
