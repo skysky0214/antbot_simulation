@@ -8,7 +8,7 @@
 
 <!-- BANNER -->
 <div align="center">
-  <img src="docs/images/banner.svg" alt="Antbot Banner" width="840" />
+  <img src="docs/images/banner.svg" alt="AntBot Banner" width="840" />
 </div>
 
 <br />
@@ -87,7 +87,7 @@
 <!-- ABOUT -->
 ## 🤖 About
 
-**Antbot** is a production-ready, open-source ROS 2 robot stack designed for the ROBOTIS AI Antbot autonomous delivery robot — a **4-wheel independent swerve-drive platform** built for last-mile delivery.
+**AntBot** is a production-ready, open-source ROS 2 robot stack designed for the ROBOTIS AI AntBot autonomous delivery robot — a **4-wheel independent swerve-drive platform** built for last-mile delivery.
 
 <div align="center">
 
@@ -118,7 +118,7 @@ Built entirely on [ROS 2 Humble](https://docs.ros.org/en/humble/) and the [ros2_
 
 | Package | Description |
 |:--------|:------------|
-| [`antbot`](antbot/) | Meta-package for the Antbot project |
+| [`antbot`](antbot/) | Meta-package for the AntBot project |
 | [`antbot_bringup`](antbot_bringup/) | Launch files for all hardware drivers, controllers, and sensors |
 | [`antbot_description`](antbot_description/) | URDF / Xacro robot model with sensor frames and meshes |
 | [`antbot_swerve_controller`](antbot_swerve_controller/) | ros2_control swerve-drive controller with IK, motion profiling, and odometry |
