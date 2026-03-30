@@ -1,0 +1,57 @@
+---
+title: 6.4 알려진 이슈
+description: AntBot에서 발생하는 미해결 이슈 목록 및 조치 방법
+sidebar:
+  order: 4
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+## 알려진 이슈
+
+
+| # | 이슈 이름 | 설명 | 조치 방법 |
+|---|----------|------|-------------|
+| 1 | FTDI USB 미인식 | 부팅 시 FTDI USB 장치가 인식되지 않음 | USB 리셋 또는 재부팅 |
+
+<details>
+<summary>1. FTDI USB 미인식</summary>
+
+#### 증상
+
+부팅 후 로봇이 정상적으로 동작하지 않으며, USB 시리얼 장치가 일부 또는 전부 인식되지 않습니다.
+
+#### 확인 방법
+
+아래 명령어를 실행하여 `/dev/ttyUSB0` ~ `/dev/ttyUSB3` 4개 포트가 모두 존재하는지 확인합니다.
+
+```bash
+ls /dev/ttyUSB*
+```
+
+#### 조치 방법
+
+<Steps>
+
+1. 아래 명령어를 실행하여 USB 장치를 리셋합니다.
+
+   ```bash
+   gpioset 0 1=0
+   ```
+
+2. 리셋 후에도 문제가 지속되면 AntBot을 재부팅합니다.
+
+3. 그래도 해결되지 않으면 전원을 끄고 USB 케이블 연결 상태를 점검한 뒤 [기술 지원](/antbot/license/support/)에 문의해 주십시오.
+
+</Steps>
+
+</details>
+
+{/* ---
+
+## 해결된 이슈
+
+| # | 설명 | 해결 버전 | 해결일 |
+|---|------|-----------|--------|
+
+*/}

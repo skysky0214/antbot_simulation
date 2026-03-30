@@ -1,0 +1,57 @@
+---
+title: 6.4 Known Issues
+description: List of unresolved issues and workarounds for AntBot
+sidebar:
+  order: 4
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+## Known Issues
+
+
+| # | Issue | Description | Resolution |
+|---|-------|-------------|------------|
+| 1 | FTDI USB Not Recognized | FTDI USB devices not recognized on boot | USB reset or reboot |
+
+<details>
+<summary>1. FTDI USB Not Recognized</summary>
+
+#### Symptoms
+
+After booting, the robot does not operate normally, and some or all USB serial devices are not recognized.
+
+#### How to Check
+
+Run the following command to verify that all four ports (`/dev/ttyUSB0` through `/dev/ttyUSB3`) exist.
+
+```bash
+ls /dev/ttyUSB*
+```
+
+#### Resolution
+
+<Steps>
+
+1. Run the following command to reset the USB devices.
+
+   ```bash
+   gpioset 0 1=0
+   ```
+
+2. If the issue persists after the reset, reboot the AntBot.
+
+3. If still unresolved, power off and check the USB cable connections, then contact [technical support](/antbot/en/license/support/).
+
+</Steps>
+
+</details>
+
+{/* ---
+
+## Resolved Issues
+
+| # | Description | Fixed In | Date |
+|---|-------------|----------|------|
+
+*/}
