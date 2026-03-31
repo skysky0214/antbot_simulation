@@ -12,15 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# ANTBot Ignition Gazebo simulation launch file.
-#
-# Usage:
-#   ros2 launch antbot_gazebo gazebo.launch.py                  # empty world
-#   ros2 launch antbot_gazebo gazebo.launch.py world:=depot      # by name
-#   ros2 launch antbot_gazebo gazebo.launch.py world:=/full/path/to/world.sdf
-#
-# World names are resolved via antbot_navigation/maps/worlds.yaml.
-#
 # Author: Yeeun Hwang
 
 import os
@@ -40,29 +31,26 @@ import yaml
 
 
 def _resolve_world_path(context, *args, **kwargs):
-    """Resolve world name to SDF path using worlds.yaml, then launch Gazebo."""
+    """Resolve world name to SDF path, then launch Gazebo."""
     world_value = LaunchConfiguration('world').perform(context)
 
-    # If it's already a full path, use it directly
     if os.path.isfile(world_value):
         world_sdf = world_value
     else:
-        # Treat as a world name — look up in worlds.yaml
-        nav_pkg = get_package_share_directory('antbot_navigation')
-        maps_dir = os.path.join(nav_pkg, 'maps')
-        worlds_yaml = os.path.join(maps_dir, 'worlds.yaml')
+        gazebo_pkg = get_package_share_directory('antbot_gazebo')
+        worlds_yaml = os.path.join(gazebo_pkg, 'config', 'worlds.yaml')
+        worlds_dir = os.path.join(gazebo_pkg, 'worlds')
 
         if os.path.isfile(worlds_yaml):
             with open(worlds_yaml, 'r') as f:
                 config = yaml.safe_load(f)
             worlds = config.get('worlds', {})
             if world_value in worlds:
-                world_sdf = os.path.join(maps_dir, worlds[world_value]['sdf'])
+                world_sdf = os.path.join(worlds_dir, worlds[world_value]['sdf'])
             else:
-                # Fallback: try as filename in maps directory
-                world_sdf = os.path.join(maps_dir, world_value + '.sdf')
+                world_sdf = os.path.join(worlds_dir, world_value + '.sdf')
         else:
-            world_sdf = os.path.join(maps_dir, world_value + '.sdf')
+            world_sdf = os.path.join(worlds_dir, world_value + '.sdf')
 
         if not os.path.isfile(world_sdf):
             raise FileNotFoundError(
@@ -73,34 +61,17 @@ def _resolve_world_path(context, *args, **kwargs):
         output='screen')]
 
 
-def _spawn_controllers(context, *args, **kwargs):
-    """Wait for Gazebo startup before spawning controllers."""
-    import time
-    delay = float(LaunchConfiguration('controller_delay').perform(context))
-    time.sleep(delay)
-    return []
-
-
 def generate_launch_description():
     gazebo_pkg = get_package_share_directory('antbot_gazebo')
     description_pkg = get_package_share_directory('antbot_description')
 
-    # Plugin path based on ROS distro
     ros_distro = os.environ.get('ROS_DISTRO', 'humble')
     plugin_path = os.path.join('/opt', 'ros', ros_distro, 'lib')
 
-    # ── Launch arguments ──
     world_arg = DeclareLaunchArgument(
         'world',
         default_value='empty',
         description='World name (from worlds.yaml) or full path to SDF file')
-
-    controller_delay_arg = DeclareLaunchArgument(
-        'controller_delay',
-        default_value='8.0',
-        description='Seconds to wait for Gazebo startup')
-
-    # ── Environment variables ──
     resource_path = os.path.join(description_pkg, os.pardir)
     existing_resource = os.environ.get('IGN_GAZEBO_RESOURCE_PATH', '')
     set_resource_path = SetEnvironmentVariable(
@@ -112,14 +83,11 @@ def generate_launch_description():
         'IGN_GAZEBO_SYSTEM_PLUGIN_PATH',
         plugin_path + (':' + existing_plugin if existing_plugin else ''))
 
-    # ── URDF processing ──
     urdf_path = os.path.join(gazebo_pkg, 'urdf', 'antbot_sim.xacro')
     robot_description_xml = xacro.process_file(urdf_path).toxml()
 
-    # ── Launch Gazebo (resolved via OpaqueFunction) ──
     ign_gazebo = OpaqueFunction(function=_resolve_world_path)
 
-    # ── Spawn robot ──
     spawn_robot = Node(
         package='ros_gz_sim',
         executable='create',
@@ -130,7 +98,6 @@ def generate_launch_description():
         ],
         output='screen')
 
-    # ── Robot State Publisher ──
     robot_state_pub = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
@@ -140,12 +107,19 @@ def generate_launch_description():
             {'use_sim_time': True},
         ])
 
-    # ── Controller configuration ──
     controller_yaml = os.path.join(
         gazebo_pkg, 'config', 'swerve_controller_gazebo.yaml')
 
-    # Wait for Gazebo startup, then spawn controllers
-    wait_for_gazebo = OpaqueFunction(function=_spawn_controllers)
+    wait_for_cm = ExecuteProcess(
+        cmd=[
+            'bash', '-c',
+            'echo "[gazebo.launch] Waiting for controller_manager..." && '
+            'until ros2 service list 2>/dev/null | grep -q /controller_manager/list_controllers; '
+            'do sleep 1; done && '
+            'sleep 2 && '
+            'echo "[gazebo.launch] controller_manager is ready."'
+        ],
+        output='screen')
 
     jsb_spawner = Node(
         package='controller_manager',
@@ -169,13 +143,21 @@ def generate_launch_description():
         parameters=[{'use_sim_time': True}],
         output='screen')
 
-    # Spawn swerve controller after JSB completes
+    wait_after_spawn = RegisterEventHandler(
+        OnProcessExit(
+            target_action=spawn_robot,
+            on_exit=[wait_for_cm]))
+
+    jsb_after_cm = RegisterEventHandler(
+        OnProcessExit(
+            target_action=wait_for_cm,
+            on_exit=[jsb_spawner]))
+
     swerve_after_jsb = RegisterEventHandler(
         OnProcessExit(
             target_action=jsb_spawner,
             on_exit=[swerve_spawner]))
 
-    # ── Gazebo - ROS 2 topic bridge ──
     gz_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -191,20 +173,14 @@ def generate_launch_description():
         output='screen')
 
     return LaunchDescription([
-        # Arguments
         world_arg,
-        controller_delay_arg,
-        # Environment
         set_resource_path,
         set_plugin_path,
-        # Gazebo
         ign_gazebo,
         spawn_robot,
         robot_state_pub,
-        # Controllers (wait -> JSB -> swerve sequential spawn)
-        wait_for_gazebo,
-        jsb_spawner,
+        wait_after_spawn,
+        jsb_after_cm,
         swerve_after_jsb,
-        # Topic bridge
         gz_bridge,
     ])
