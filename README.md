@@ -78,6 +78,8 @@
         <li><a href="#visualization">Visualization</a></li>
         <li><a href="#teleoperation">Teleoperation</a></li>
         <li><a href="#manual-velocity-commands">Manual Velocity Commands</a></li>
+        <li><a href="#navigation">Navigation</a></li>
+        <li><a href="#gazebo-simulation">Gazebo Simulation</a></li>
       </ul>
     </li>
     <li><a href="#-hardware-specifications">Hardware Specifications</a></li>
@@ -136,6 +138,8 @@ This repository provides a complete, modular software stack to operate the robot
 | [`antbot_camera`](antbot_camera/) | Multi-driver camera package (V4L2 / USB / Orbbec Gemini 336L RGB-D) |
 | [`antbot_imu`](antbot_imu/) | IMU driver with complementary filter and auto-calibration |
 | [`antbot_teleop`](antbot_teleop/) | Keyboard/joystick teleoperation with holonomic velocity control |
+| [`antbot_navigation`](antbot_navigation/) | Nav2 navigation stack with SLAM, localization (EKF), and path planning |
+| [`antbot_gazebo`](antbot_gazebo/) | Ignition Gazebo simulation environment with ros2_control integration |
 
 > **External sensor drivers** included: [`vanjee_lidar_sdk`](vanjee_lidar_sdk/) (3D LiDAR) and [`vanjee_lidar_msg`](vanjee_lidar_msg/) (LiDAR message definitions).
 
@@ -242,6 +246,8 @@ antbot/
 ├── antbot_camera/                 # Multi-driver camera node (V4L2, USB, RGB-D)
 ├── antbot_imu/                    # IMU driver with complementary filter
 ├── antbot_teleop/                 # Keyboard/joystick teleoperation (Python)
+├── antbot_navigation/             # Nav2 navigation (SLAM, EKF localization, path planning)
+├── antbot_gazebo/                 # Ignition Gazebo simulation (worlds, URDF, controllers)
 ├── vanjee_lidar_sdk/              # Vanjee 3D LiDAR driver
 ├── vanjee_lidar_msg/              # Vanjee LiDAR message definitions
 ├── docs/                          # Documentation and images
@@ -373,6 +379,40 @@ ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
   "{linear: {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 1.0}}"
 ```
 
+### Navigation
+
+**SLAM mapping** — build a map while driving:
+
+```bash
+ros2 launch antbot_navigation slam.launch.py
+```
+
+**Autonomous navigation** — navigate using a saved map:
+
+```bash
+ros2 launch antbot_navigation navigation.launch.py
+```
+
+**EKF localization** only:
+
+```bash
+ros2 launch antbot_navigation localization.launch.py
+```
+
+### Gazebo Simulation
+
+Run the full simulation without physical hardware:
+
+```bash
+ros2 launch antbot_gazebo gazebo.launch.py
+```
+
+Teleoperate in simulation:
+
+```bash
+ros2 run antbot_teleop teleop_keyboard
+```
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ---
@@ -450,6 +490,9 @@ ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
 | `/sensor/lidar_3d/point_cloud` | [![sensor_msgs](https://img.shields.io/badge/sensor__msgs-PointCloud2-0d6efd?style=flat-square)](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointCloud2.html) | 3D point cloud |
 | `/sensor/lidar_2d_front/scan` | [![sensor_msgs](https://img.shields.io/badge/sensor__msgs-LaserScan-0d6efd?style=flat-square)](https://docs.ros2.org/latest/api/sensor_msgs/msg/LaserScan.html) | Front 2D laser scan |
 | `/sensor/lidar_2d_back/scan` | [![sensor_msgs](https://img.shields.io/badge/sensor__msgs-LaserScan-0d6efd?style=flat-square)](https://docs.ros2.org/latest/api/sensor_msgs/msg/LaserScan.html) | Rear 2D laser scan |
+| `/scan_0` | [![sensor_msgs](https://img.shields.io/badge/sensor__msgs-LaserScan-0d6efd?style=flat-square)](https://docs.ros2.org/latest/api/sensor_msgs/msg/LaserScan.html) | Front 2D laser scan (simulation) |
+| `/scan_1` | [![sensor_msgs](https://img.shields.io/badge/sensor__msgs-LaserScan-0d6efd?style=flat-square)](https://docs.ros2.org/latest/api/sensor_msgs/msg/LaserScan.html) | Rear 2D laser scan (simulation) |
+| `/imu/data` | [![sensor_msgs](https://img.shields.io/badge/sensor__msgs-Imu-0d6efd?style=flat-square)](https://docs.ros2.org/latest/api/sensor_msgs/msg/Imu.html) | IMU data (simulation) |
 
 ### Subscribed Topics
 
@@ -475,6 +518,11 @@ ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
 | [![cv_bridge](https://img.shields.io/badge/cv__bridge-5C3EE8?style=flat-square&logo=opencv&logoColor=white)](https://github.com/ros-perception/vision_opencv) | ROS ↔ OpenCV image conversion |
 | [![tinyxml2](https://img.shields.io/badge/tinyxml2-228B22?style=flat-square&logo=xml&logoColor=white)](https://github.com/leethomason/tinyxml2) | Control table XML parsing |
 | [![rviz_imu_plugin](https://img.shields.io/badge/imu__tools-22314E?style=flat-square&logo=ros&logoColor=white)](https://github.com/CCNYRoboticsLab/imu_tools) | IMU visualization in RViz |
+| [![nav2](https://img.shields.io/badge/Nav2-22314E?style=flat-square&logo=ros&logoColor=white)](https://github.com/ros-navigation/navigation2) | Autonomous navigation framework |
+| [![slam_toolbox](https://img.shields.io/badge/slam__toolbox-22314E?style=flat-square&logo=ros&logoColor=white)](https://github.com/SteveMacenski/slam_toolbox) | Online/offline SLAM for map building |
+| [![robot_localization](https://img.shields.io/badge/robot__localization-22314E?style=flat-square&logo=ros&logoColor=white)](https://github.com/cra-ros-pkg/robot_localization) | EKF/UKF sensor fusion for localization |
+| [![ros_gz](https://img.shields.io/badge/ros__gz-22314E?style=flat-square&logo=ros&logoColor=white)](https://github.com/gazebosim/ros_gz) | Ignition Gazebo ↔ ROS 2 bridge |
+| [![ign_ros2_control](https://img.shields.io/badge/ign__ros2__control-22314E?style=flat-square&logo=ros&logoColor=white)](https://github.com/ros-controls/gz_ros2_control) | Gazebo hardware interface for ros2_control |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
