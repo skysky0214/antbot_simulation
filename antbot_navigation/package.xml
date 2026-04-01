@@ -4,7 +4,7 @@
   <name>antbot_navigation</name>
   <version>0.0.0</version>
   <description>Nav2 navigation stack integration for AntBot swerve-drive robot</description>
-  <maintainer email="osh@robotis.com">rc</maintainer>
+  <maintainer email="osh@robotis.com">SungHyeon Oh</maintainer>
   <license>Apache-2.0</license>
   <author email="jaehongoh1554@gmail.com">Jaehong Oh</author>
 
