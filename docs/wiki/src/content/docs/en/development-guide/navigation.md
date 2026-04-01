@@ -368,39 +368,17 @@ The `map` argument can still be used to override with any arbitrary map file pat
 
 ## Troubleshooting
 
-:::caution["Failed to create plan" Error]
-The robot is positioned inside an obstacle on the costmap. Use **2D Pose Estimate** in RViz to correct the initial position, or reset the costmap:
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| **"Failed to create plan"** | Robot is inside an obstacle on the costmap | Use **2D Pose Estimate** in RViz to correct position, or reset the costmap (command below) |
+| **Wall collision / avoidance failure** | Insufficient safety margin | Increase `inflation_radius` (0.75→1.0), decrease `cost_scaling_factor` (1.5→1.0), increase `ObstaclesCritic.collision_margin_distance` (0.1→0.2) |
+| **Excessive spinning in place** | Direction control weight imbalance | Increase `TwirlingCritic` (10.0→15.0), decrease `wz_max` (1.5→1.0), decrease `PreferForwardCritic` (15.0→10.0) |
+| **Missing map frame / TF timeout** | Gazebo restart resets sim time | **Always restart Gazebo and Navigation together** |
 
 ```bash
-# Reset the global costmap to clear stale obstacle data
+# Reset costmap (when "Failed to create plan" occurs)
 ros2 service call /global_costmap/clear_entirely_global_costmap nav2_msgs/srv/ClearEntireCostmap
 ```
-:::
-
-:::caution[Wall Collision / Obstacle Avoidance Failure]
-If the robot approaches obstacles too closely or collides:
-
-| Action | Parameter | Example Change | Effect |
-|--------|-----------|----------------|--------|
-| Expand safety margin | `inflation_radius` | 0.75 → 1.0 | Increases clearance around obstacles |
-| Adjust cost curve | `cost_scaling_factor` | 1.5 → 1.0 | Keeps cost higher near obstacles |
-| Increase MPPI avoidance range | `ObstaclesCritic.collision_margin_distance` | 0.1 → 0.2 | Makes MPPI avoid obstacles earlier |
-:::
-
-:::caution[Excessive Spinning in Place]
-If the robot keeps rotating instead of moving toward the goal:
-
-| Action | Parameter | Example Change | Effect |
-|--------|-----------|----------------|--------|
-| Suppress spinning | `TwirlingCritic` weight | 10.0 → 15.0 | Stronger penalty for unnecessary rotation |
-| Limit rotation speed | `wz_max` | 1.5 → 1.0 | Reduces max rotation speed |
-| Relax forward preference | `PreferForwardCritic` weight | 15.0 → 10.0 | Shortens forward direction search time |
-:::
-
-:::caution[Missing map Frame / TF Timeout]
-If Gazebo is restarted, sim time resets to 0 and all TF buffers are invalidated.
-**Always restart Gazebo and Navigation together.**
-:::
 
 ### Diagnostic Commands
 
