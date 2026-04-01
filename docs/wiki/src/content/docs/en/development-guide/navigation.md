@@ -33,17 +33,25 @@ Custom tuning is applied for the 4-wheel independent swerve-drive characteristic
 
 ### Prerequisites
 
+Install Nav2 and related packages:
+
 ```bash
+# Install Nav2 navigation stack, SLAM, EKF sensor fusion, and MPPI controller
 sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup \
   ros-humble-slam-toolbox ros-humble-robot-localization \
   ros-humble-nav2-mppi-controller
 ```
 
+:::note
+For Gazebo simulation dependencies, see [5.4 Simulation Environment Setup — Prerequisites](/antbot/en/development-guide/simulation/#prerequisites).
+:::
+
 ### Run (3 Terminals)
 
-**Terminal 1 — Gazebo Simulation**
+**Terminal 1 — Launch Gazebo Simulation**
 
 ```bash
+# Start the Gazebo simulator with the robot model
 ros2 launch antbot_gazebo gazebo.launch.py world:=depot
 ```
 
@@ -52,9 +60,10 @@ Wait ~8-15 seconds for the Gazebo window and controller spawners to complete.
 The `world` argument accepts a world name registered in `worlds.yaml` or a full path to an SDF file.
 :::
 
-**Terminal 2 — Nav2 Navigation**
+**Terminal 2 — Launch Nav2 Navigation Stack**
 
 ```bash
+# Start EKF + AMCL + full Nav2 navigation stack
 ros2 launch antbot_navigation navigation.launch.py mode:=sim world:=depot
 ```
 
@@ -66,22 +75,29 @@ ros2 launch antbot_navigation navigation.launch.py mode:=sim \
 ```
 :::
 
-**Terminal 3 — RViz**
+**Terminal 3 — Launch RViz Visualization**
 
 ```bash
+# Open RViz with Nav2-specific configuration
 rviz2 -d $(ros2 pkg prefix antbot_navigation --share)/rviz/navigation.rviz \
   --ros-args -p use_sim_time:=true
 ```
 
-### Controlling the Robot
+### Setting Navigation Goals
 
-**Single goal**: In RViz, click **2D Pose Estimate** to set initial pose → click **Nav2 Goal**
+**Single Goal**
 
-**Waypoint following**: RViz → Panels → Add New Panel → `nav2_rviz_plugins/Navigation2` → check Waypoint Mode → click multiple goals → Start Waypoint Following
+1. In RViz, click **2D Pose Estimate** to set the robot's initial position
+2. Click **Nav2 Goal** to specify the target position
 
-**CLI**:
+**Multi-Waypoint Following**
+
+RViz → Panels → Add New Panel → `nav2_rviz_plugins/Navigation2` → check Waypoint Mode → click multiple goals → Start Waypoint Following
+
+**Goal via CLI**
 
 ```bash
+# Send a navigation goal to coordinates (x: 5.0, y: 3.0) in the map frame
 ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
   "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 5.0, y: 3.0}}}}"
 ```
@@ -91,10 +107,13 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 | Launch file | Purpose | Features |
 |-------------|---------|----------|
 | `navigation.launch.py` | Autonomous driving with saved map | AMCL + full Nav2 stack |
-| `slam.launch.py` | Build map while navigating | SLAM Toolbox (no map needed) |
-| `localization.launch.py` | Localization only | No planning, position estimation only |
+| `slam.launch.py` | Build map while navigating | SLAM Toolbox (no pre-built map needed) |
+| `localization.launch.py` | Localization only | No path planning, EKF + AMCL only |
 
-Save map: `ros2 run nav2_map_server map_saver_cli -f ~/maps/my_map`
+```bash
+# Save the SLAM-generated map to a file
+ros2 run nav2_map_server map_saver_cli -f ~/maps/my_map
+```
 
 ---
 
@@ -127,14 +146,14 @@ When launching with `world:=depot`:
 - **Gazebo**: loads `maps/depot.sdf`
 - **Navigation**: passes `maps/depot_sim.yaml` to the map server
 
-### Adding a New World
+### Registering a Custom World
 
 1. **Create a map with SLAM** (or import externally):
 
    ```bash
-   # Start SLAM
+   # Start SLAM mode to build a map in real-time
    ros2 launch antbot_navigation slam.launch.py mode:=sim
-   # Save map
+   # Save the generated map to a file
    ros2 run nav2_map_server map_saver_cli -f ~/maps/my_world
    ```
 
@@ -155,6 +174,7 @@ When launching with `world:=depot`:
 4. **Launch**:
 
    ```bash
+   # Run simulation with the registered custom world
    ros2 launch antbot_gazebo gazebo.launch.py world:=my_world
    ros2 launch antbot_navigation navigation.launch.py mode:=sim world:=my_world
    ```
@@ -171,8 +191,10 @@ The `map` argument can still be used to override with any arbitrary map file pat
 All launch files accept a `mode` argument that auto-selects the config directory and `use_sim_time`:
 
 ```bash
-ros2 launch antbot_navigation slam.launch.py mode:=sim    # simulation
-ros2 launch antbot_navigation slam.launch.py mode:=real   # real robot
+# Run in simulation environment (uses Gazebo clock)
+ros2 launch antbot_navigation slam.launch.py mode:=sim
+# Run on the real robot (uses system clock)
+ros2 launch antbot_navigation slam.launch.py mode:=real
 ```
 
 | Setting | `mode:=sim` | `mode:=real` |
@@ -193,11 +215,11 @@ ros2 launch antbot_navigation slam.launch.py mode:=real   # real robot
 
 ![TF Tree](../../../../assets/images/tf_tree.png)
 
-| Transform | Publisher |
-|-----------|----------|
-| `map → odom` | AMCL or SLAM Toolbox |
-| `odom → base_link` | EKF (Nav2 mode) or swerve controller (standalone) |
-| `base_link → *` | robot_state_publisher |
+| Transform | Publisher | Input Data | Output |
+|-----------|----------|------------|--------|
+| `map → odom` | AMCL or SLAM Toolbox | LiDAR scans (`/scan_0`) + map data | Global position correction |
+| `odom → base_link` | EKF (Nav2 mode) or swerve controller (standalone) | Wheel odometry (`/odom`) + IMU | Robot displacement estimation |
+| `base_link → *` | robot_state_publisher | URDF model | Sensor/wheel frame positions |
 
 ### odom TF Handover
 
@@ -208,6 +230,7 @@ and Nav2 nodes start with an 8-second delay to allow EKF to establish the TF fir
 If you see jitter, disable manually:
 
 ```bash
+# Disable swerve controller's odom TF publishing
 ros2 param set /antbot_swerve_controller enable_odom_tf false
 ```
 :::
@@ -218,117 +241,202 @@ ros2 param set /antbot_swerve_controller enable_odom_tf false
 
 Config files: `antbot_navigation/config/{sim,real}/`
 
-### MPPI Controller
+### Parameter Overview
 
-AntBot's steering limit is **+/-60 degrees**, making pure crab motion physically impossible.
-Direction changes use a **rotate-in-place then drive-forward** pattern, and MPPI parameters are tuned accordingly.
+Nav2 uses multiple components working together for autonomous navigation. Each component's role:
 
-```yaml
-FollowPath:
-  plugin: "nav2_mppi_controller::MPPIController"
-  motion_model: "Omni"
-  time_steps: 56           # 2.8s lookahead
-  batch_size: 2000
-  vx_max: 1.0              # sim (real: 2.0)
-  vy_max: 0.1              # nearly disabled (±60deg steering limit)
-```
+| Component | Role | Config File |
+|-----------|------|-------------|
+| **MPPI Controller** | Generates candidate paths and selects the optimal one to move the robot | `nav2_params.yaml` |
+| **AMCL** | Compares LiDAR scans against the map to estimate the robot's current position | `nav2_params.yaml` |
+| **EKF** | Combines wheel odometry and IMU data for improved position accuracy | `ekf.yaml` |
+| **SLAM Toolbox** | Builds a map in real-time while simultaneously estimating position | `slam_toolbox_params.yaml` |
+| **Costmap** | Builds an obstacle grid from sensor data for collision avoidance | `nav2_params.yaml` |
 
-#### MPPI Critics
+### MPPI Controller (Path Following)
 
-| Critic | Weight | Purpose |
-|--------|--------|---------|
-| ConstraintCritic | 4.0 | Velocity constraint violation penalty |
-| GoalCritic | 5.0 | Goal approach reward |
-| **PreferForwardCritic** | **15.0** | **Strongly align heading with travel direction (swerve key)** |
-| **PathAngleCritic** | **15.0** | **Body angle = path direction (swerve key)** |
-| **TwirlingCritic** | **10.0** | **Suppress unnecessary spinning (swerve key)** |
-| ObstaclesCritic | — | Collision avoidance |
-| PathAlignCritic | 10.0 | Trajectory-path alignment |
-| PathFollowCritic | 5.0 | Global path following |
+MPPI (Model Predictive Path Integral) simulates thousands of candidate paths and selects the one with the highest score.
 
-:::note[Steering Limit and MPPI Tuning]
-`vy_max` is limited to 0.1 and `PreferForwardCritic` / `PathAngleCritic` weights are high,
-forcing MPPI to **rotate in place to align heading first, then drive forward** rather than crab-walking.
-Increasing `vy_max` causes the steering to hit its limits, producing unnatural motion.
+AntBot's steering can only turn **+/-60 degrees**, making sideways movement physically impossible.
+To change direction, the robot uses a **rotate-in-place then drive-forward** pattern, and the parameters below are tuned accordingly.
+
+#### Key Velocity Parameters
+
+| Parameter | Sim | Real | Description |
+|-----------|-----|------|-------------|
+| `vx_max` | 1.0 | 2.0 | Max forward speed (m/s). Real robot is set faster |
+| `vy_max` | 0.1 | 0.5 | Max lateral speed (m/s). **Lower values enforce forward-driving behavior** |
+| `wz_max` | 1.5 | 2.0 | Max rotation speed (rad/s) |
+| `batch_size` | 2000 | 1500 | Number of candidate paths per cycle. More = precise but heavier compute |
+| `time_steps` | 56 | 56 | Number of lookahead steps. Multiplied by `model_dt` (0.05s) to determine prediction horizon |
+
+:::note[time_steps and Prediction Horizon]
+`time_steps × model_dt = 56 × 0.05s = 2.8s`. MPPI predicts the robot's path up to 2.8 seconds into the future.
+Increasing `time_steps` extends the prediction horizon but increases computation; decreasing it makes the robot more reactive but only considers nearby paths.
 :::
 
-### AMCL
+:::note[Why vy_max is low]
+A low `vy_max` prevents MPPI from generating lateral movement paths.
+Since steering only goes to +/-60 degrees, attempting lateral motion causes the steering to hit its limits, producing unnatural movement.
+:::
+
+#### MPPI Critics (Path Scoring Criteria)
+
+MPPI scores each candidate path using multiple critics. Higher weight means that criterion has more influence on path selection.
+
+**Swerve Direction Control** — key settings that make AntBot drive forward rather than sideways:
+
+| Critic | Sim | Real | Description |
+|--------|-----|------|-------------|
+| `PreferForwardCritic` | 15.0 | 5.0 | Encourages forward-facing movement. Higher = suppresses reverse/lateral |
+| `PathAngleCritic` | 15.0 | 5.0 | Aligns robot heading with path direction. Higher = tighter alignment |
+| `TwirlingCritic` | 10.0 | 5.0 | Suppresses unnecessary spinning. Higher = more stable straight-line driving |
+
+:::tip[Sim vs Real Weight Differences]
+Simulation has no friction, so the robot slides easily — higher weights are needed.
+The real robot's tire-ground friction naturally encourages straight driving, so lower weights suffice.
+:::
+
+**Path Following** — settings for tracking the planned path to the goal:
+
+| Critic | Weight | Description |
+|--------|--------|-------------|
+| `GoalCritic` | 5.0 | Rewards paths that get closer to the goal |
+| `PathAlignCritic` | 10.0 | Evaluates alignment between candidate and global path |
+| `PathFollowCritic` | 5.0 | Prevents deviation from the global path |
+
+**Safety** — obstacle avoidance and speed limits:
+
+| Critic | Weight | Description |
+|--------|--------|-------------|
+| `ObstaclesCritic` | — | Penalizes paths near obstacles. `collision_cost: 10000` blocks collision paths |
+| `ConstraintCritic` | 4.0 | Penalizes paths that violate max velocity/acceleration limits |
+
+### AMCL (Position Estimation)
+
+AMCL estimates the robot's current position by comparing LiDAR scan data against the saved map.
 
 ```yaml
 amcl:
-  robot_model_type: "nav2_amcl::OmniMotionModel"  # required for holonomic
+  robot_model_type: "nav2_amcl::OmniMotionModel"
   scan_topic: /scan_0
 ```
 
-:::caution
-`OmniMotionModel` is **required** for swerve robots. The default `DifferentialMotionModel` cannot model lateral motion (vy), significantly degrading localization accuracy.
+:::caution[OmniMotionModel Required]
+AntBot is a swerve robot that can move forward, backward, and sideways, so it requires `OmniMotionModel` which recognizes multi-directional movement.
+
+Standard 2-wheel robots (diff-drive) only move forward and backward, so `DifferentialMotionModel` is sufficient for them.
+However, using that model on a robot like AntBot that can also move laterally (vy) will fail to recognize sideways movement, significantly degrading localization accuracy.
 :::
 
-### EKF Sensor Fusion
+### EKF Sensor Fusion (Odometry Correction)
 
-```yaml
-odom0: /odom                    # vx, vy, vyaw
-imu0: /imu/data                 # yaw, vyaw (differential mode) — sim
-# imu0: /imu_node/imu/accel_gyro  # real robot
-odom0_rejection_threshold: 2.0  # reject collision spikes
-```
+EKF (Extended Kalman Filter) combines wheel odometry and IMU sensor data to calculate a more accurate position than either sensor alone.
+
+| Setting | Sim | Real | Description |
+|---------|-----|------|-------------|
+| Odometry topic | `/odom` | `/odom` | Velocity from wheels (vx, vy, vyaw) |
+| IMU topic | `/imu/data` | `/imu_node/imu/accel_gyro` | Gyro/accelerometer (yaw, vyaw) |
+| Process noise | Low | High | Real sensors have more noise, so uncertainty is set higher |
+| `odom0_rejection_threshold` | 2.0 | 1.5 | Odometry data exceeding this value is ignored |
 
 :::note[Collision Protection]
-When wheel slip occurs during wall collisions, velocity spikes are automatically rejected by `odom0_rejection_threshold`, preventing odom drift.
+When the robot hits a wall, wheel slip can produce abnormally large velocity values in the odometry.
+`odom0_rejection_threshold` automatically ignores these spikes, preventing the position estimate from drifting significantly after a collision.
 :::
 
 :::caution[Sim vs Real IMU Topic]
 In simulation, Gazebo ros_gz_bridge publishes IMU on `/imu/data`, while the real robot uses `/imu_node/imu/accel_gyro`. The correct topic is configured in `config/sim/ekf.yaml` and `config/real/ekf.yaml` respectively.
 :::
 
-### Costmap
+### SLAM Toolbox (Real-time Map Building)
 
-Robot footprint 0.70m x 0.60m, dual LiDAR (`/scan_0` front + `/scan_1` back).
+SLAM Toolbox uses LiDAR data to build a map in real-time while simultaneously estimating position.
+Used by `slam.launch.py` and does not require a pre-built map.
+
+| Parameter | Sim | Real | Description |
+|-----------|-----|------|-------------|
+| `max_laser_range` | 20.0 | 12.0 | Max usable LiDAR range (m). Reduced for real LiDAR performance |
+| `minimum_travel_distance` | 0.5 | 0.3 | Min distance traveled before adding a new scan to the map (m) |
+| `minimum_travel_heading` | 0.5 | 0.4 | Min rotation before adding a new scan (rad) |
+| `resolution` | 0.05 | 0.05 | Map grid resolution (m/pixel). 5cm per cell |
+| `map_update_interval` | 5.0 | 5.0 | Map update period (seconds) |
+
+:::tip[Sim vs Real Differences]
+The real robot uses a reduced `max_laser_range` due to noisier LiDAR data,
+and tighter scan insertion (`minimum_travel_distance: 0.3`) to compensate with better map coverage.
+Loop closure thresholds are also stricter on the real robot to prevent false loop closures.
+:::
+
+### Costmap (Obstacle Map)
+
+The costmap builds a grid-based obstacle map from sensor data. The robot uses this map to plan paths that avoid obstacles.
+
+AntBot uses dual 2D LiDARs — front (`/scan_0`) and rear (`/scan_1`) — for 360-degree obstacle detection.
+
+- **Robot footprint**: 0.70m x 0.60m
+- **Inflation radius** (`inflation_radius`): 0.75m — adds a safety margin around obstacles to account for steering overshoot
 
 | Aspect | Local Costmap | Global Costmap |
 |--------|---------------|----------------|
-| Frame | `odom` | `map` |
-| Size | 5m x 5m rolling | Full map |
-| Update | 5Hz | 1Hz |
+| Reference frame | `odom` | `map` |
+| Size | 5m x 5m (around robot only) | Full map |
+| Update rate | 5Hz (fast, for nearby obstacles) | 1Hz (slow, for overall path planning) |
 | Layers | obstacle x2 + inflation | static + obstacle x2 + inflation |
 
 ---
 
 ## Troubleshooting
 
-### "Failed to create plan"
-
-Robot is inside an obstacle on the costmap. Use **2D Pose Estimate** in RViz, or:
+:::caution["Failed to create plan" Error]
+The robot is positioned inside an obstacle on the costmap. Use **2D Pose Estimate** in RViz to correct the initial position, or reset the costmap:
 
 ```bash
+# Reset the global costmap to clear stale obstacle data
 ros2 service call /global_costmap/clear_entirely_global_costmap nav2_msgs/srv/ClearEntireCostmap
 ```
+:::
 
-### Wall collision
+:::caution[Wall Collision / Obstacle Avoidance Failure]
+If the robot approaches obstacles too closely or collides:
 
-1. Increase `inflation_radius` (0.75 → 1.0)
-2. Decrease `cost_scaling_factor` (1.5 → 1.0)
-3. Increase `ObstaclesCritic.collision_margin_distance`
+| Action | Parameter | Example Change | Effect |
+|--------|-----------|----------------|--------|
+| Expand safety margin | `inflation_radius` | 0.75 → 1.0 | Increases clearance around obstacles |
+| Adjust cost curve | `cost_scaling_factor` | 1.5 → 1.0 | Keeps cost higher near obstacles |
+| Increase MPPI avoidance range | `ObstaclesCritic.collision_margin_distance` | 0.1 → 0.2 | Makes MPPI avoid obstacles earlier |
+:::
 
-### Crab-walking
+:::caution[Excessive Spinning in Place]
+If the robot keeps rotating instead of moving toward the goal:
 
-Reduce `vy_max` or increase `PreferForwardCritic` weight.
-Since the steering limit is +/-60 degrees, `vy_max: 0.1` or lower is recommended.
+| Action | Parameter | Example Change | Effect |
+|--------|-----------|----------------|--------|
+| Suppress spinning | `TwirlingCritic` weight | 10.0 → 15.0 | Stronger penalty for unnecessary rotation |
+| Limit rotation speed | `wz_max` | 1.5 → 1.0 | Reduces max rotation speed |
+| Relax forward preference | `PreferForwardCritic` weight | 15.0 → 10.0 | Shortens forward direction search time |
+:::
 
-### Missing map frame / TF timeout
-
+:::caution[Missing map Frame / TF Timeout]
 If Gazebo is restarted, sim time resets to 0 and all TF buffers are invalidated.
 **Always restart Gazebo and Navigation together.**
+:::
 
 ### Diagnostic Commands
 
 ```bash
-ros2 topic hz /scan_0                    # LiDAR check
-ros2 topic hz /odometry/filtered         # EKF output check
-ros2 run tf2_ros tf2_echo map odom       # TF check
+# Check LiDAR data reception rate (expected: ~10Hz)
+ros2 topic hz /scan_0
+# Check EKF sensor fusion output (expected: ~50Hz)
+ros2 topic hz /odometry/filtered
+# Verify map → odom TF transform status
+ros2 run tf2_ros tf2_echo map odom
+# Check swerve controller's odom TF publish status
 ros2 param get /antbot_swerve_controller enable_odom_tf
-ros2 lifecycle get /controller_server    # Nav2 state
-ros2 control list_controllers            # Controller state
+# Check Nav2 controller server lifecycle state
+ros2 lifecycle get /controller_server
+# List ros2_control controllers and their status
+ros2 control list_controllers
 ```
 
 :::tip
