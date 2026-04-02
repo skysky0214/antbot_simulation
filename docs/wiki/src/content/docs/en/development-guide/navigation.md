@@ -14,7 +14,7 @@ Custom tuning is applied for the 4-wheel independent swerve-drive characteristic
 
 ### Nav2 Pipeline
 
-![Nav2 Pipeline](../../../../assets/images/nav2_pipeline_en.png)
+![Nav2 Pipeline](../../../../assets/images/nav2_pipeline.png)
 
 ### AntBot vs Standard diff-drive
 
