@@ -38,7 +38,6 @@ def generate_launch_description():
 
     # Resolve config paths based on mode: config/sim/ or config/real/
     config_dir = PathJoinSubstitution([pkg_dir, 'config', mode])
-    nav2_params_file = PathJoinSubstitution([config_dir, 'nav2_params.yaml'])
     ekf_params_file = PathJoinSubstitution([config_dir, 'ekf.yaml'])
     slam_params_file = PathJoinSubstitution(
         [config_dir, 'slam_toolbox_params.yaml'])
@@ -71,70 +70,9 @@ def generate_launch_description():
         output='screen',
         parameters=[slam_params_file, {'use_sim_time': use_sim_time}])
 
-    # Planner server (NavFn A*)
-    planner_server_node = Node(
-        package='nav2_planner',
-        executable='planner_server',
-        name='planner_server',
-        output='screen',
-        parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
-
-    # Smoother server (smooths global path before controller follows it)
-    smoother_server_node = Node(
-        package='nav2_smoother',
-        executable='smoother_server',
-        name='smoother_server',
-        output='screen',
-        parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
-
-    # Controller server (MPPI holonomic)
-    controller_server_node = Node(
-        package='nav2_controller',
-        executable='controller_server',
-        name='controller_server',
-        output='screen',
-        parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
-
-    # Behavior server (spin, backup, wait)
-    behavior_server_node = Node(
-        package='nav2_behaviors',
-        executable='behavior_server',
-        name='behavior_server',
-        output='screen',
-        parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
-
-    # BT Navigator
-    bt_navigator_node = Node(
-        package='nav2_bt_navigator',
-        executable='bt_navigator',
-        name='bt_navigator',
-        output='screen',
-        parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
-
-    # Lifecycle manager for navigation nodes
-    lifecycle_manager_navigation = Node(
-        package='nav2_lifecycle_manager',
-        executable='lifecycle_manager',
-        name='lifecycle_manager_navigation',
-        output='screen',
-        parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
-
-    # Delay Nav2 nodes slightly to allow EKF and SLAM to initialize
-    delayed_nav2 = TimerAction(
-        period=3.0,
-        actions=[
-            planner_server_node,
-            smoother_server_node,
-            controller_server_node,
-            behavior_server_node,
-            bt_navigator_node,
-            lifecycle_manager_navigation,
-        ])
-
     return LaunchDescription([
         mode_arg,
         disable_odom_tf,
         ekf_node,
         slam_toolbox_node,
-        delayed_nav2,
     ])
