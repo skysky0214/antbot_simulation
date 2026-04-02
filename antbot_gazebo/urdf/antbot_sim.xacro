@@ -57,7 +57,6 @@
 
   <!-- 3D LiDAR -->
   <xacro:Sensors name="lidar_3d" xyz="0.225332 0.0 0.724904" rpy="0.0 ${radians(10)} 0.0"/>
-  <xacro:SensorsRel parent="lidar_3d" child="lidar_3d_imu" xyz="-0.00559 -0.00571 -0.02668" rpy="0.0 0.0 0.0"/>
 
   <!-- Charging coil -->
   <xacro:Sensors name="robot_charging_coil" xyz="-0.299119 0.0 0.170631" rpy="0.0 0.0 0.0"/>
