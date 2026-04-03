@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
-<!-- Copyright 2026 ROBOTIS AI CO., LTD.
-     Licensed under the Apache License, Version 2.0 -->
+
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>antbot_gazebo</name>

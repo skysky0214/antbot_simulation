@@ -1,6 +1,3 @@
-# Copyright 2026 ROBOTIS AI CO., LTD.
-# Licensed under the Apache License, Version 2.0
-#
 # Gazebo simulation swerve controller configuration.
 # Disables acceleration interfaces (unsupported by IgnitionSystem)
 # and uses simulation-specific tuning values.
