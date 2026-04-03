@@ -73,7 +73,7 @@ Nav2 자율주행 연동은 [5.3 Nav2 연동](/antbot/development-guide/navigati
 
 ### 시뮬레이션 파이프라인
 
-![Simulation Pipeline](../../../assets/images/sim_pipeline.png)
+![Simulation Pipeline](../../../assets/images/diagram.png)
 
 ### 런치 시퀀스
 
