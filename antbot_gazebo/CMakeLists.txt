@@ -1,5 +1,3 @@
-# Copyright 2026 ROBOTIS AI CO., LTD.
-# Licensed under the Apache License, Version 2.0
 cmake_minimum_required(VERSION 3.5)
 project(antbot_gazebo)
 

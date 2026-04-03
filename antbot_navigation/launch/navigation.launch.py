@@ -19,9 +19,10 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.actions import ExecuteProcess
+from launch.actions import IncludeLaunchDescription
 from launch.actions import OpaqueFunction
 from launch.actions import TimerAction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
@@ -60,38 +61,20 @@ def _resolve_map_and_launch(context, *args, **kwargs):
     if not os.path.isfile(map_yaml):
         raise FileNotFoundError(f'Map file not found: {map_yaml}')
 
+    # Include localization launch (EKF, map_server, AMCL, disable_odom_tf)
+    localization_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_dir, 'launch', 'localization.launch.py')),
+        launch_arguments={
+            'mode': mode,
+            'map': map_yaml,
+        }.items())
+
     # Resolve config paths based on mode
     config_dir = os.path.join(pkg_dir, 'config', mode)
     nav2_params_file = os.path.join(config_dir, 'nav2_params.yaml')
-    ekf_params_file = os.path.join(config_dir, 'ekf.yaml')
 
     use_sim_time = (mode == 'sim')
-
-    # EKF sensor fusion (wheel odom + IMU) for odom->base_link TF
-    ekf_node = Node(
-        package='robot_localization',
-        executable='ekf_node',
-        name='ekf_filter_node',
-        output='screen',
-        parameters=[ekf_params_file, {'use_sim_time': use_sim_time}])
-
-    # Map server
-    map_server_node = Node(
-        package='nav2_map_server',
-        executable='map_server',
-        name='map_server',
-        output='screen',
-        parameters=[nav2_params_file,
-                    {'yaml_filename': map_yaml,
-                     'use_sim_time': use_sim_time}])
-
-    # AMCL localization (OmniMotionModel for holonomic swerve)
-    amcl_node = Node(
-        package='nav2_amcl',
-        executable='amcl',
-        name='amcl',
-        output='screen',
-        parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
 
     # Planner server (NavFn A*)
     planner_server_node = Node(
@@ -133,14 +116,7 @@ def _resolve_map_and_launch(context, *args, **kwargs):
         output='screen',
         parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
 
-    # Lifecycle managers (node names must match nav2_params.yaml)
-    lifecycle_manager_localization = Node(
-        package='nav2_lifecycle_manager',
-        executable='lifecycle_manager',
-        name='lifecycle_manager_localization',
-        output='screen',
-        parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
-
+    # Lifecycle manager for navigation nodes
     lifecycle_manager_navigation = Node(
         package='nav2_lifecycle_manager',
         executable='lifecycle_manager',
@@ -148,31 +124,19 @@ def _resolve_map_and_launch(context, *args, **kwargs):
         output='screen',
         parameters=[nav2_params_file, {'use_sim_time': use_sim_time}])
 
-    # Disable swerve controller's odom TF so the EKF publishes it instead.
-    disable_odom_tf = TimerAction(
-        period=3.0,
-        actions=[ExecuteProcess(
-            cmd=['ros2', 'param', 'set',
-                 '/antbot_swerve_controller', 'enable_odom_tf', 'false'],
-            output='screen')])
-
-    # Delay Nav2 nodes to allow EKF to publish odom->base_link TF first
-    # EKF needs time to receive odom + IMU and start publishing TF
+    # Delay Nav2 nodes to allow localization to initialize first
     delayed_nav2 = TimerAction(
         period=8.0,
         actions=[
-            map_server_node,
-            amcl_node,
             planner_server_node,
             smoother_server_node,
             controller_server_node,
             behavior_server_node,
             bt_navigator_node,
-            lifecycle_manager_localization,
             lifecycle_manager_navigation,
         ])
 
-    return [disable_odom_tf, ekf_node, delayed_nav2]
+    return [localization_launch, delayed_nav2]
 
 
 def generate_launch_description():

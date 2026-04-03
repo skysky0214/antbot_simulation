@@ -1,6 +1,5 @@
 <?xml version="1.0" ?>
-<!-- Copyright 2026 ROBOTIS AI CO., LTD.
-     Licensed under the Apache License, Version 2.0 -->
+
 <sdf version="1.8">
   <world name="default_world">
     <physics name="1ms" type="ignored">
