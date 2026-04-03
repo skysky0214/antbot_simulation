@@ -14,7 +14,7 @@ Custom tuning is applied for the 4-wheel independent swerve-drive characteristic
 
 ### Nav2 Pipeline
 
-![Nav2 Pipeline](../../../../assets/images/nav2_pipeline.png)
+![Nav2 Pipeline](../../../../assets/images/nav2_pipeline_en.png)
 
 ### AntBot vs Standard diff-drive
 
@@ -191,7 +191,7 @@ ros2 launch antbot_navigation slam.launch.py mode:=real   # real robot
 
 ### TF Tree
 
-![TF Tree](../../../../assets/images/tf_tree.png)
+![TF Tree](../../../../assets/images/TF_tree_en.png)
 
 | Transform | Publisher |
 |-----------|----------|
