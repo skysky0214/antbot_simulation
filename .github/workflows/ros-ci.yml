@@ -65,8 +65,8 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.3
         with:
           target-ros2-distro: ${{ matrix.ros_distribution }}
-          # Dynamically fetch the additional_repos.repos file based on the current branch
-          vcs-repo-file-url: "https://raw.githubusercontent.com/ROBOTIS-move/antbot/${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}/additional_repos.repos"
+          # Dynamically fetch the additional_repos.repos file based on the current repository and branch
+          vcs-repo-file-url: "https://raw.githubusercontent.com/${{ github.event.pull_request.head.repo.full_name || github.repository }}/${{ github.event.pull_request.head.ref || github.ref_name }}/additional_repos.repos"
 
           # Configuration for colcon build and test:
           # antbot_camera: excluded due to ARM(aarch64)-only librectrl.so dependency
