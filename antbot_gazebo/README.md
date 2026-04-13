@@ -41,7 +41,7 @@ ros2 launch antbot_gazebo gazebo.launch.py world:=/path/to/world.sdf
 antbot_gazebo/
 ├── config/
 │   ├── swerve_controller_gazebo.yaml   # Sim-specific controller params
-│   └── worlds.yaml                     # World name → SDF path mapping
+│   └── worlds.yaml                     # World name to SDF path mapping
 ├── launch/
 │   └── gazebo.launch.py                # Gazebo + robot spawn + controllers
 ├── urdf/
@@ -66,4 +66,4 @@ antbot_gazebo/
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `world` | `empty` | World name (from `worlds.yaml`) or full path to SDF file |
+| `world` | `empty` | World name from `config/worlds.yaml` or full path to SDF file |
